@@ -7,12 +7,8 @@ import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: envs.host,
-      port: envs.dbport,
-      username: envs.user,
-      password: envs.password,
-      database: envs.database,
+      type: 'postgres',
+      url: envs.dbUrl,
       autoLoadEntities: true,
       synchronize: true,
     }),

@@ -6,30 +6,33 @@
 ## Installation
 
 ```bash
-$ yarn install
-$ copy and paste .env.template and remame to .env
+$ npm install
+$ copy .env.template and rename to .env (configure your PostgreSQL database URL)
 ```
 
 ## Running the app
 
 ```bash
 # development
-$ docker compose up -d
-$ yarn start:dev
+$ npm run start:dev
 
 # production mode
-$ yarn start:prod
+$ npm run start:prod
 ```
+
+## Swagger 
+
+Go to http://localhost:3000/api
 
 ## Test
 
 ```bash
 # unit tests
-$ yarn run test
+$ npm run test
 
 # e2e tests
-$ yarn run test:e2e
+$ npm run test:e2e
 
 # test coverage
-$ yarn run test:cov
+$ npm run test:cov
 ```
