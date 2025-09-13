@@ -7,8 +7,11 @@ export class User {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ type: 'varchar', length: 255 })
-    fullName: string;
+    @Column({ type: 'varchar', length: 255, unique: true })
+    username: string;
+
+    @Column({ type: 'varchar', length: 100, name: 'avatar_url', nullable: true })
+    avatarUrl: string;
 
     @Column({ type: 'varchar', length: 50, unique: true })
     email: string;
@@ -19,10 +22,13 @@ export class User {
     @Column({ type: 'enum', enum: ValidRoles ,default: ValidRoles.user })
     roles: ValidRoles;
 
-    @Column({ type: 'varchar', length: 10, unique: true })
-    phoneNumber: string;
-
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'created_at' })
     createdAt: Date;
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_at' })
+    updatedAt: Date;
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'deleted_at' })
+    deletedAt: Date | null;
 
 }

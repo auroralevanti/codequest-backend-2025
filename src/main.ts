@@ -1,8 +1,9 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { envs } from './config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 async function bootstrap() {
 
@@ -18,11 +19,14 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     })
   );
+  
+  const reflector = app.get(Reflector);
+  app.useGlobalGuards(new JwtAuthGuard(reflector));
     
 
   const config = new DocumentBuilder()
-    .setTitle('My template api title')
-    .setDescription('My template api description')
+    .setTitle('Devtalles API')
+    .setDescription('API for managing devtalles blog')
     .setVersion('1.0')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
