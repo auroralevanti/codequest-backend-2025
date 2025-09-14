@@ -1,8 +1,7 @@
 import { createParamDecorator, ExecutionContext, ForbiddenException, InternalServerErrorException } from "@nestjs/common";
-import { ValidRoles } from "../enums/valid-roles.enum";
 
 export const CurrentUser = createParamDecorator(
-    ( roles: ValidRoles, context: ExecutionContext ) => {  
+    ( roles: string[], context: ExecutionContext ) => {  
         const request = context.switchToHttp().getRequest();
         const user = request.user;
 

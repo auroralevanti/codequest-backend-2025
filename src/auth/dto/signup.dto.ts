@@ -1,6 +1,5 @@
-import { IsEmail, IsEnum, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { ValidRoles } from "../enums/valid-roles.enum";
 
 export class SignupDto {
     
@@ -45,13 +44,12 @@ export class SignupDto {
 	avatarUrl?: string;
 
 	@ApiPropertyOptional({
-		description: 'Role assigned to the user',
-		enum: ValidRoles,
-		example: ValidRoles.user,
-		default: ValidRoles.user
+		description: 'Role assigned to the user (string). Use roles table/service for authoritative values',
+		example: 'user',
+		default: 'user'
 	})
-	@IsEnum(ValidRoles)
+	@IsString()
 	@IsOptional()
-	roles?: ValidRoles;
+	roles?: string;
 
 }

@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from "typeorm";
-import { ValidRoles } from "../../auth/enums/valid-roles.enum";
+// roles are stored as strings and managed via the roles table/business logic
 
 @Entity({ name: 'users' })
 export class User {
@@ -21,8 +21,8 @@ export class User {
     @Column({ type: 'varchar', name: 'password_hash' })
     password: string;
 
-    @Column({ type: 'enum', enum: ValidRoles, default: ValidRoles.user })
-    roles: ValidRoles;
+    @Column({ type: 'varchar', length: 50, default: 'user' })
+    roles: string;
 
     @Column({ type: 'boolean', name: 'is_active', default: true })
     isActive: boolean;

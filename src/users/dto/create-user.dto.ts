@@ -1,6 +1,5 @@
-import { IsEmail, IsEnum, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { ValidRoles } from "../../auth/enums/valid-roles.enum";
 
 export class CreateUserDto {
   @ApiProperty({ description: 'Username for the user account', example: 'janesmith456', minLength: 3, maxLength: 255 })
@@ -25,8 +24,8 @@ export class CreateUserDto {
   @MaxLength(100)
   avatarUrl?: string;
 
-  @ApiPropertyOptional({ description: 'Role assigned to the user', enum: ValidRoles, example: ValidRoles.user, default: ValidRoles.user })
-  @IsEnum(ValidRoles)
+  @ApiPropertyOptional({ description: 'Role assigned to the user (string). Use roles table/service for authoritative values', example: 'user', default: 'user' })
+  @IsString()
   @IsOptional()
-  roles?: ValidRoles;
+  roles?: string;
 }

@@ -3,7 +3,6 @@ import { UsersService } from './users.service';
 
 import { User } from './entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { ValidRoles } from '../auth/enums/valid-roles.enum';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { Auth } from '../auth/decorators/auth.decorator';
@@ -15,7 +14,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @Auth(ValidRoles.admin)
+  @Auth('admin')
   findAll(
     @Query() paginationDto: PaginationDto,
   ): Promise<User[]> {
@@ -29,7 +28,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Auth(ValidRoles.admin) // just admin users
+  @Auth('admin') // just admin users
   blockUser(@Param('id') id: string): Promise<User> {
     return this.usersService.blockUser(id);
   }

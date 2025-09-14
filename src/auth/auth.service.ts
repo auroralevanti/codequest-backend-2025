@@ -6,7 +6,6 @@ import { SignupDto } from './dto/signup.dto';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { User } from '../users/entities/user.entity';
-import { ValidRoles } from './enums/valid-roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -37,7 +36,7 @@ export class AuthService {
     const user = await this.usersService.create({
       ...userData,
       password: hashed,
-      roles: ValidRoles.user,
+      roles: 'user',
     });
 
     const token = this.getJwtToken(user.id);
@@ -59,14 +58,14 @@ export class AuthService {
       try {
         const payload: any = this.jwtService.verify(token);
         const actor = await this.usersService.findOneById(payload.id);
-        if (actor && actor.roles === ValidRoles.admin) {
-          // Admin creating user: allow roles from DTO (default to user if not provided)
+  if (actor && actor.roles === 'admin') {
+                  // Admin creating user: allow roles from DTO (default to 'user' if not provided)
           const { password, ...userData } = signupDto;
           const hashed = bcryptjs.hashSync(password, 10);
           const user = await this.usersService.create({
             ...userData,
             password: hashed,
-            roles: signupDto.roles ?? ValidRoles.user,
+                    roles: signupDto.roles ?? 'user',
           });
           delete user.password;
           return user;

@@ -5,7 +5,6 @@ import { LoginDto } from './dto/login.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { IsPublic } from './decorators/is-public.decorator';
 import { Auth } from './decorators/auth.decorator';
-import { ValidRoles } from './enums/valid-roles.enum';
 
 @ApiTags('Auth')
 @Controller('auth')
