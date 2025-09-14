@@ -1,5 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from "typeorm";
-// roles are stored as strings and managed via the roles table/business logic
+import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany } from "typeorm";
+import { UserRole } from "../../roles/entities/user-role.entity";
 
 @Entity({ name: 'users' })
 export class User {
@@ -23,6 +23,9 @@ export class User {
 
     @Column({ type: 'varchar', length: 50, default: 'user' })
     roles: string;
+
+    @OneToMany(() => UserRole, userRole => userRole.user)
+    userRoles: UserRole[];
 
     @Column({ type: 'boolean', name: 'is_active', default: true })
     isActive: boolean;

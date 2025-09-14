@@ -2,12 +2,16 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { User } from '../../users/entities/user.entity';
+import { RolesService } from '../../roles/services/roles.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private rolesService: RolesService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -23,11 +27,11 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('User not found in request');
     }
 
-    const hasRole = requiredRoles.includes(user.roles);
+    const hasAnyRole = await this.rolesService.userHasAnyRole(user.id, requiredRoles);
     
-    if (!hasRole) {
+    if (!hasAnyRole) {
       throw new ForbiddenException(
-        `User ${user.email} does not have the required roles: [${requiredRoles.join(', ')}]`
+        `User ${user.email} does not have any of the required roles: [${requiredRoles.join(', ')}]`
       );
     }
 
