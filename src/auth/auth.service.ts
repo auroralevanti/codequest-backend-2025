@@ -6,6 +6,7 @@ import { SignupDto } from './dto/signup.dto';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { User } from '../users/entities/user.entity';
+import { ValidRoles } from './enums/valid-roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -15,17 +16,68 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async signup(signupDto: SignupDto) {
-
-    const { password, ...userData } = signupDto; 
+  // Admin-only signup: creates users (admin can create admin accounts)
+  async signupAdmin(signupDto: SignupDto) {
+    const { password, ...userData } = signupDto;
+    const hashed = bcryptjs.hashSync(password, 10);
     const user = await this.usersService.create({
       ...userData,
-      password: bcryptjs.hashSync(password, 10),
+      password: hashed,
     });
     delete user.password;
+    return user;
+  }
 
-    return user; 
+  // Public register: normal users register and receive JWT
+  async register(signupDto: SignupDto) {
+    const { password, roles, ...userData } = signupDto;
+    const hashed = bcryptjs.hashSync(password, 10);
 
+    // Force role to 'user' regardless of payload
+    const user = await this.usersService.create({
+      ...userData,
+      password: hashed,
+      roles: ValidRoles.user,
+    });
+
+    const token = this.getJwtToken(user.id);
+
+    delete user.password;
+
+    return {
+      user,
+      token,
+    };
+  }
+
+  // Unified signup: if an Authorization header with a valid admin JWT is provided,
+  // allow creation of admins (respecting `roles` in DTO). Otherwise create a regular user and return JWT.
+  async signup(signupDto: SignupDto, authorization?: string) {
+    // If Authorization header exists, try to validate token and check admin role
+    if (authorization && authorization.startsWith('Bearer ')) {
+      const token = authorization.replace('Bearer ', '');
+      try {
+        const payload: any = this.jwtService.verify(token);
+        const actor = await this.usersService.findOneById(payload.id);
+        if (actor && actor.roles === ValidRoles.admin) {
+          // Admin creating user: allow roles from DTO (default to user if not provided)
+          const { password, ...userData } = signupDto;
+          const hashed = bcryptjs.hashSync(password, 10);
+          const user = await this.usersService.create({
+            ...userData,
+            password: hashed,
+            roles: signupDto.roles ?? ValidRoles.user,
+          });
+          delete user.password;
+          return user;
+        }
+      } catch (error) {
+        // Invalid token; fall through to public registration
+      }
+    }
+
+    // Public registration (no valid admin token): create regular user and return JWT
+    return this.register(signupDto);
   }
 
   async login(loginDto: LoginDto) {

@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from "typeorm";
 import { ValidRoles } from "../../auth/enums/valid-roles.enum";
 
 @Entity({ name: 'users' })
@@ -11,24 +11,29 @@ export class User {
     username: string;
 
     @Column({ type: 'varchar', length: 100, name: 'avatar_url', nullable: true })
-    avatarUrl: string;
+    avatarUrl?: string;
 
     @Column({ type: 'varchar', length: 50, unique: true })
     email: string;
 
-    @Column({ type: 'varchar' })
+    // Keep property name `password` in the entity for compatibility with existing logic,
+    // but map to `password_hash` column in the database.
+    @Column({ type: 'varchar', name: 'password_hash' })
     password: string;
 
-    @Column({ type: 'enum', enum: ValidRoles ,default: ValidRoles.user })
+    @Column({ type: 'enum', enum: ValidRoles, default: ValidRoles.user })
     roles: ValidRoles;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'created_at' })
+    @Column({ type: 'boolean', name: 'is_active', default: true })
+    isActive: boolean;
+
+    @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
     createdAt: Date;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_at' })
+    @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
     updatedAt: Date;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'deleted_at' })
-    deletedAt: Date | null;
+    @DeleteDateColumn({ type: 'timestamptz', name: 'deleted_at' })
+    deletedAt?: Date | null;
 
 }

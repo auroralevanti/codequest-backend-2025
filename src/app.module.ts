@@ -10,7 +10,7 @@ import { AuthModule } from './auth/auth.module';
       type: 'postgres',
       url: envs.dbUrl,
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: false,
     }),
     UsersModule,
     AuthModule,
