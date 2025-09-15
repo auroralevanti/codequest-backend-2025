@@ -13,17 +13,22 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { PostsService } from './posts.service';
+import { CommentsService } from '../comments/comments.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { FilterPostsDto } from './dto/filter-posts.dto';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('Posts')
 @Controller('posts')
 export class PostsController {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(
+    private readonly postsService: PostsService,
+    private readonly commentsService: CommentsService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new post' })
@@ -54,6 +59,15 @@ export class PostsController {
   ) {
     const myPostsFilter = { ...filterDto, authorId: user.id };
     return this.postsService.findAll(myPostsFilter, user);
+  }
+
+  @Get(':postId/comments')
+  @ApiOperation({ summary: 'Get comments for a post (paginated)' })
+  findComments(
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.commentsService.findAllByPost(postId, pagination);
   }
 
   @Get(':id')
