@@ -17,7 +17,6 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Create a category' })
   @Auth('admin')
   @ApiBearerAuth('access-token')
-  @ApiHeader({ name: 'authorization', description: 'Bearer token (admin required)', required: true })
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createDto: CreateCategoryDto, @Res({ passthrough: true }) res: Response): Promise<CategoryResponseDto> {
     const created = await this.categoriesService.create(createDto) as any;
@@ -48,7 +47,6 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Update a category' })
   @Auth('admin')
   @ApiBearerAuth('access-token')
-  @ApiHeader({ name: 'authorization', description: 'Bearer token (admin required)', required: true })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateDto: UpdateCategoryDto): Promise<CategoryResponseDto> {
     return this.categoriesService.update(id, updateDto);
   }
@@ -57,7 +55,6 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Delete a category' })
   @Auth('admin')
   @ApiBearerAuth('access-token')
-  @ApiHeader({ name: 'authorization', description: 'Bearer token (admin required)', required: true })
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.remove(id);

@@ -34,7 +34,6 @@ export class PostsController {
   @ApiOperation({ summary: 'Create a new post' })
   @Auth()
   @ApiBearerAuth('access-token')
-  @ApiHeader({ name: 'authorization', description: 'Optional admin Bearer token', required: false })
   create(
     @Body() createPostDto: CreatePostDto,
     @CurrentUser() user: User
@@ -54,7 +53,6 @@ export class PostsController {
 
   @Get('my-posts')
   @ApiOperation({ summary: 'Get current user posts' })
-  @ApiHeader({ name: 'authorization', description: 'Optional admin Bearer token', required: false })
   @ApiResponse({ status: 200, description: 'User posts retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   findMyPosts(
@@ -104,7 +102,6 @@ export class PostsController {
   @ApiOperation({ summary: 'Update a post' })
   @Auth()
   @ApiBearerAuth('access-token')
-  @ApiHeader({ name: 'authorization', description: 'Optional admin Bearer token', required: false })
   @ApiParam({ name: 'id', description: 'Post ID', type: 'string' })
   @ApiResponse({ status: 200, description: 'Post updated successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
@@ -124,7 +121,6 @@ export class PostsController {
   @ApiOperation({ summary: 'Delete a post' })
   @Auth()
   @ApiBearerAuth('access-token')
-  @ApiHeader({ name: 'authorization', description: 'Optional admin Bearer token', required: false })
   @ApiParam({ name: 'id', description: 'Post ID', type: 'string' })
   @ApiResponse({ status: 204, description: 'Post deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -155,7 +151,6 @@ export class PostsController {
   @ApiOperation({ summary: 'Publish a draft post' })
   @Auth()
   @ApiBearerAuth('access-token')
-  @ApiHeader({ name: 'authorization', description: 'Optional admin Bearer token', required: false })
   @ApiParam({ name: 'id', description: 'Post ID', type: 'string' })
   @ApiResponse({ status: 200, description: 'Post published successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
@@ -173,7 +168,6 @@ export class PostsController {
   @ApiOperation({ summary: 'Unpublish a post (convert to draft)' })
   @Auth()
   @ApiBearerAuth('access-token')
-  @ApiHeader({ name: 'authorization', description: 'Optional admin Bearer token', required: false })
   @ApiParam({ name: 'id', description: 'Post ID', type: 'string' })
   @ApiResponse({ status: 200, description: 'Post unpublished successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
