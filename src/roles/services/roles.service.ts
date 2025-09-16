@@ -33,9 +33,11 @@ export class RolesService {
   }
 
   async addRoleToUser(userId: string, roleName: string): Promise<void> {
-    const role = await this.roleRepository.findOne({ where: { name: roleName } });
+    let role = await this.roleRepository.findOne({ where: { name: roleName } });
     if (!role) {
-      throw new Error(`Role ${roleName} not found`);
+      // Create the role if it doesn't exist (id generated automatically)
+      role = this.roleRepository.create({ name: roleName, description: `${roleName} role` });
+      await this.roleRepository.save(role);
     }
 
     const existingUserRole = await this.userRoleRepository.findOne({
