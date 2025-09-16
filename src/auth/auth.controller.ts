@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { ApiHeader } from '@nestjs/swagger';
 import { IsPublic } from './decorators/is-public.decorator';
 import { Auth } from './decorators/auth.decorator';
 
@@ -16,6 +17,7 @@ export class AuthController {
   // - Otherwise it acts as public registration and returns `{ user, token }`.
   @Post('signup')
   @IsPublic()
+  @ApiHeader({ name: 'authorization', description: 'Optional admin Bearer token', required: false })
   async signup(
     @Body() signupDto: SignupDto,
     @Headers('authorization') authorization?: string,
