@@ -18,6 +18,7 @@ export class AuthService {
   // Admin-only signup: creates users (admin can create admin accounts)
   async signupAdmin(signupDto: SignupDto) {
     const { password, ...userData } = signupDto;
+    if (userData.avatarUrl === '') delete (userData as any).avatarUrl;
     const hashed = bcryptjs.hashSync(password, 10);
     const user = await this.usersService.create({
       ...userData,
@@ -30,6 +31,7 @@ export class AuthService {
   // Public register: normal users register and receive JWT
   async register(signupDto: SignupDto) {
     const { password, roles, ...userData } = signupDto;
+    if ((userData as any).avatarUrl === '') delete (userData as any).avatarUrl;
     const hashed = bcryptjs.hashSync(password, 10);
 
     // Force role to 'user' regardless of payload
@@ -58,9 +60,10 @@ export class AuthService {
       try {
         const payload: any = this.jwtService.verify(token);
         const actor = await this.usersService.findOneById(payload.id);
-  if (actor && actor.roles === 'admin') {
+        if (actor && actor.roles === 'admin') {
                   // Admin creating user: allow roles from DTO (default to 'user' if not provided)
           const { password, ...userData } = signupDto;
+          if ((userData as any).avatarUrl === '') delete (userData as any).avatarUrl;
           const hashed = bcryptjs.hashSync(password, 10);
           const user = await this.usersService.create({
             ...userData,
