@@ -7,12 +7,14 @@ import { Category } from '../categories/entities/category.entity';
 import { Tag } from '../tags/entities/tag.entity';
 import { AuthModule } from '../auth/auth.module';
 import { CommentsModule } from '../comments/comments.module';
+import { LikesModule } from '../likes/likes.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Post, Category, Tag]),
     AuthModule,
   CommentsModule,
+  LikesModule,
   ],
   controllers: [PostsController],
   providers: [PostsService],
