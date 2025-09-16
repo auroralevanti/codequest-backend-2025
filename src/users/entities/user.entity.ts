@@ -1,4 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany } from "typeorm";
+import { Exclude } from 'class-transformer';
 import { UserRole } from "../../roles/entities/user-role.entity";
 
 @Entity({ name: 'users' })
@@ -18,6 +19,7 @@ export class User {
 
     // Keep property name `password` in the entity for compatibility with existing logic,
     // but map to `password_hash` column in the database.
+    @Exclude()
     @Column({ type: 'varchar', name: 'password_hash' })
     password: string;
 

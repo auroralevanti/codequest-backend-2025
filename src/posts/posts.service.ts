@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder, In } from 'typeorm';
 import { Post } from './entities/post.entity';
+import { PostResponseDto } from './dto/post-response.dto';
 import { CreatePostDto, PostStatus } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { FilterPostsDto } from './dto/filter-posts.dto';
@@ -54,14 +55,16 @@ export class PostsService {
     return await this.postRepository.save(post);
   }
 
-  async findAll(filterDto: FilterPostsDto, currentUser?: User): Promise<{ posts: Post[]; total: number }> {
+  async findAll(filterDto: FilterPostsDto, currentUser?: User): Promise<{ posts: PostResponseDto[]; total: number }> {
     const { limit = 10, offset = 0, search, status, authorId, categoryId, tagId, publishedAfter, publishedBefore } = filterDto;
 
     const queryBuilder = this.postRepository
       .createQueryBuilder('post')
-      .leftJoinAndSelect('post.author', 'author')
       .leftJoinAndSelect('post.categories', 'categories')
-      .leftJoinAndSelect('post.tags', 'tags');
+      .leftJoinAndSelect('post.tags', 'tags')
+      // Select only safe author fields to avoid leaking password or other sensitive columns
+      .leftJoin('post.author', 'author')
+      .addSelect(['author.id', 'author.username', 'author.avatarUrl']);
 
     await this.applyFilters(queryBuilder, {
       search,
@@ -80,17 +83,34 @@ export class PostsService {
     const [posts, total] = await queryBuilder.getManyAndCount();
     const postsWithCounts = await this.addPostCounts(posts, currentUser);
 
+    // Map to response DTO shape to control exposed fields
+    const mapped = postsWithCounts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      content: post.content,
+      author: post.author
+        ? { id: post.author.id, username: post.author.username, avatarUrl: post.author.avatarUrl }
+        : null,
+      likesCount: post.likesCount,
+      commentsCount: post.commentsCount,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+    }));
+
     return {
-      posts: postsWithCounts,
+      posts: mapped,
       total,
     };
   }
 
-  async findOne(id: string, currentUser?: User): Promise<Post> {
-    const post = await this.postRepository.findOne({
-      where: { id },
-      relations: ['author', 'categories', 'tags'],
-    });
+  async findOne(id: string, currentUser?: User): Promise<PostResponseDto> {
+    const post = await this.postRepository.findOne({ where: { id }, relations: ['categories', 'tags'] });
+
+    // load safe author fields explicitly using repository select
+    const author = post?.authorId
+      ? await this.postRepository.manager.getRepository(User).findOne({ where: { id: post.authorId }, select: ['id', 'username', 'avatarUrl'] })
+      : null;
 
     if (!post) throw new NotFoundException(`Post with ID ${id} not found`);
 
@@ -98,15 +118,26 @@ export class PostsService {
     if (post.status === PostStatus.DRAFT && currentUser?.id !== post.authorId && !isAdmin) 
       throw new ForbiddenException('You do not have permission to view this draft post');
 
-    const [postWithCounts] = await this.addPostCounts([post], currentUser);
-    return postWithCounts;
+  const [postWithCounts] = await this.addPostCounts([post], currentUser);
+
+    return {
+      id: postWithCounts.id,
+      title: postWithCounts.title,
+      slug: postWithCounts.slug,
+      content: postWithCounts.content,
+  author: author ? { id: author.id, username: author.username, avatarUrl: author.avatarUrl } : null,
+      likesCount: postWithCounts.likesCount,
+      commentsCount: postWithCounts.commentsCount,
+      createdAt: postWithCounts.createdAt,
+      updatedAt: postWithCounts.updatedAt,
+    };
   }
 
-  async findBySlug(slug: string, currentUser?: User): Promise<Post> {
-    const post = await this.postRepository.findOne({
-      where: { slug },
-      relations: ['author', 'categories', 'tags'],
-    });
+  async findBySlug(slug: string, currentUser?: User): Promise<PostResponseDto> {
+    const post = await this.postRepository.findOne({ where: { slug }, relations: ['categories', 'tags'] });
+    const authorBySlug = post?.authorId
+      ? await this.postRepository.manager.getRepository(User).findOne({ where: { id: post.authorId }, select: ['id', 'username', 'avatarUrl'] })
+      : null;
 
     if (!post) throw new NotFoundException(`Post with slug '${slug}' not found`);
 
@@ -115,11 +146,22 @@ export class PostsService {
       throw new ForbiddenException('You do not have permission to view this draft post');
 
     const [postWithCounts] = await this.addPostCounts([post], currentUser);
-    return postWithCounts;
+
+    return {
+      id: postWithCounts.id,
+      title: postWithCounts.title,
+      slug: postWithCounts.slug,
+      content: postWithCounts.content,
+      author: authorBySlug ? { id: authorBySlug.id, username: authorBySlug.username, avatarUrl: authorBySlug.avatarUrl } : null,
+      likesCount: postWithCounts.likesCount,
+      commentsCount: postWithCounts.commentsCount,
+      createdAt: postWithCounts.createdAt,
+      updatedAt: postWithCounts.updatedAt,
+    };
   }
 
   async update(id: string, updatePostDto: UpdatePostDto, user: User): Promise<Post> {
-    const post = await this.findOne(id);
+    const post = await this.getPostEntity(id);
 
     const isAdmin = await this.rolesService.userHasRole(user.id, 'admin');
     if (post.authorId !== user.id && !isAdmin) 
@@ -162,12 +204,18 @@ export class PostsService {
   }
 
   async remove(id: string, user: User): Promise<void> {
-    const post = await this.findOne(id);
+    const post = await this.getPostEntity(id);
     const isAdmin = await this.rolesService.userHasRole(user.id, 'admin');
     if (post.authorId !== user.id && !isAdmin) 
       throw new ForbiddenException('You do not have permission to delete this post');
 
     await this.postRepository.remove(post);
+  }
+
+  private async getPostEntity(id: string): Promise<Post> {
+    const post = await this.postRepository.findOne({ where: { id }, relations: ['categories', 'tags'] });
+    if (!post) throw new NotFoundException(`Post with ID ${id} not found`);
+    return post;
   }
 
   private generateSlug(title: string): string {
