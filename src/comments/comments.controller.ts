@@ -29,7 +29,6 @@ export class CommentsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a comment' })
-  @Auth()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createDto: CreateCommentDto, @CurrentUser() user: User, @Res({ passthrough: true }) res: Response) {
     const created = await this.commentsService.create(createDto, user);
@@ -56,14 +55,12 @@ export class CommentsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a comment' })
-  @Auth()
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateDto: UpdateCommentDto, @CurrentUser() user: User) {
     return this.commentsService.update(id, updateDto, user);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a comment' })
-  @Auth()
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.commentsService.remove(id, user);

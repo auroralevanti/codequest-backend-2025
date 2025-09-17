@@ -1,7 +1,6 @@
-import { Controller, Post, Delete, Get, Param, UseGuards, HttpCode, HttpStatus, Req, Res } from '@nestjs/common';
+import { Controller, Post, Delete, Get, Param, HttpCode, HttpStatus, Req, Res } from '@nestjs/common';
 import { LikesService } from './likes.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Response } from 'express';
 
 @ApiTags('Comment Likes')
@@ -10,8 +9,6 @@ export class CommentLikesController {
   constructor(private readonly likesService: LikesService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Like a comment' })
   async like(@Param('commentId') commentId: string, @Req() req: any, @Res({ passthrough: true }) res: Response) {
     const userId = req.user?.id;
@@ -22,8 +19,6 @@ export class CommentLikesController {
   }
 
   @Delete()
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Unlike a comment' })
   async unlike(@Param('commentId') commentId: string, @Req() req: any) {

@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Get, Query, Param, ParseUUIDPipe, Patch, Delete, HttpCode, HttpStatus, Res } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -16,7 +16,6 @@ export class CategoriesController {
   @Post()
   @ApiOperation({ summary: 'Create a category' })
   @Auth('admin')
-  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createDto: CreateCategoryDto, @Res({ passthrough: true }) res: Response): Promise<CategoryResponseDto> {
     const created = await this.categoriesService.create(createDto) as any;
@@ -46,7 +45,6 @@ export class CategoriesController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update a category' })
   @Auth('admin')
-  @ApiBearerAuth('access-token')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateDto: UpdateCategoryDto): Promise<CategoryResponseDto> {
     return this.categoriesService.update(id, updateDto);
   }
@@ -54,7 +52,6 @@ export class CategoriesController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a category' })
   @Auth('admin')
-  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.remove(id);
