@@ -45,6 +45,15 @@ export class CommentsController {
     return this.commentsService.findOne(id);
   }
 
+  @Get(':id/replies')
+  @ApiOperation({ summary: 'Get replies to a comment' })
+  findReplies(
+    @Param('id', ParseUUIDPipe) parentCommentId: string, 
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.commentsService.findReplies(parentCommentId, pagination);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Update a comment' })
   @Auth()
