@@ -8,6 +8,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { TagsModule } from './tags/tags.module';
 import { CommentsModule } from './comments/comments.module';
 import { LikesModule } from './likes/likes.module';
+import { SavedModule } from './saved/saved.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { LikesModule } from './likes/likes.module';
     TagsModule,
   CommentsModule,
   LikesModule,
+  SavedModule,
   ],
   controllers: [],
   providers: [],
