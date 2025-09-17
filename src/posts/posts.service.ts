@@ -212,6 +212,69 @@ export class PostsService {
     await this.postRepository.remove(post);
   }
 
+  // --- Share link methods ---
+  async createShareLink(id: string, user: User, expiresInHours = 24): Promise<{ token: string; expiresAt: Date }> {
+    const post = await this.getPostEntity(id);
+    const isAdmin = await this.rolesService.userHasRole(user.id, 'admin');
+    if (post.authorId !== user.id && !isAdmin) throw new ForbiddenException('You do not have permission to share this post');
+
+    // generate token
+    const token = this.generateShareToken();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHours);
+
+    post.shareToken = token;
+    post.shareExpiresAt = expiresAt;
+    post.shareIsActive = true;
+
+    await this.postRepository.save(post);
+
+    return { token, expiresAt };
+  }
+
+  async revokeShareLink(id: string, user: User): Promise<void> {
+    const post = await this.getPostEntity(id);
+    const isAdmin = await this.rolesService.userHasRole(user.id, 'admin');
+    if (post.authorId !== user.id && !isAdmin) throw new ForbiddenException('You do not have permission to revoke this share link');
+
+    post.shareIsActive = false;
+    post.shareToken = null;
+    post.shareExpiresAt = null;
+
+    await this.postRepository.save(post);
+  }
+
+  async getByShareToken(token: string): Promise<PostResponseDto> {
+    const post = await this.postRepository.findOne({ where: { shareToken: token }, relations: ['categories', 'tags'] });
+    if (!post) throw new NotFoundException('Shared post not found');
+    if (!post.shareIsActive) throw new ForbiddenException('Share link is disabled');
+    if (post.shareExpiresAt && post.shareExpiresAt < new Date()) throw new ForbiddenException('Share link has expired');
+
+    const [postWithCounts] = await this.addPostCounts([post]);
+
+    // load safe author fields
+    const author = post?.authorId
+      ? await this.postRepository.manager.getRepository(User).findOne({ where: { id: post.authorId }, select: ['id', 'username', 'avatarUrl'] })
+      : null;
+
+    return {
+      id: postWithCounts.id,
+      title: postWithCounts.title,
+      slug: postWithCounts.slug,
+      content: postWithCounts.content,
+      author: author ? { id: author.id, username: author.username, avatarUrl: author.avatarUrl } : null,
+      likesCount: postWithCounts.likesCount,
+      commentsCount: postWithCounts.commentsCount,
+      createdAt: postWithCounts.createdAt,
+      updatedAt: postWithCounts.updatedAt,
+    };
+  }
+
+  private generateShareToken(): string {
+    // simple token:  URL-safe base64 of random bytes
+    return require('crypto').randomBytes(24).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
   private async getPostEntity(id: string): Promise<Post> {
     const post = await this.postRepository.findOne({ where: { id }, relations: ['categories', 'tags'] });
     if (!post) throw new NotFoundException(`Post with ID ${id} not found`);

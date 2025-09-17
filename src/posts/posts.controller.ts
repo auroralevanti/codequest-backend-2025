@@ -41,6 +41,21 @@ export class PostsController {
     return this.postsService.create(createPostDto, user);
   }
 
+  @Post(':id/share')
+  @Auth()
+  @ApiOperation({ summary: 'Create a share link for a post (author or admin)' })
+  async createShareLink(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    return this.postsService.createShareLink(id, user);
+  }
+
+  @Delete(':id/share')
+  @Auth()
+  @ApiOperation({ summary: 'Revoke share link for a post (author or admin)' })
+  async revokeShareLink(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    await this.postsService.revokeShareLink(id, user);
+    return { success: true };
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all posts with filters and pagination' })
   @ApiResponse({ status: 200, description: 'Posts retrieved successfully' })
@@ -96,6 +111,12 @@ export class PostsController {
     @CurrentUser() user?: User
   ) {
     return this.postsService.findBySlug(slug, user);
+  }
+
+  @Get('shared/:token')
+  @ApiOperation({ summary: 'Get a post by share token (public link)' })
+  async getByShareToken(@Param('token') token: string) {
+    return this.postsService.getByShareToken(token);
   }
 
   @Patch(':id')

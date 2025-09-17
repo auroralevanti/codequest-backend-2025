@@ -64,4 +64,14 @@ export class Post {
   likesCount?: number;
   commentsCount?: number;
   isLikedByUser?: boolean;
+
+  // Share link support
+  @Column({ type: 'varchar', length: 128, name: 'share_token', nullable: true, unique: true })
+  shareToken?: string;
+
+  @Column({ type: 'timestamptz', name: 'share_expires_at', nullable: true })
+  shareExpiresAt?: Date;
+
+  @Column({ type: 'boolean', name: 'share_is_active', default: false })
+  shareIsActive?: boolean;
 }
