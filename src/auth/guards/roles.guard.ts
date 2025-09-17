@@ -17,7 +17,8 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (!requiredRoles) {
+    // If no roles metadata is defined or it's an empty array, treat as no role restriction
+    if (!requiredRoles || (Array.isArray(requiredRoles) && requiredRoles.length === 0)) {
       return true;
     }
 
