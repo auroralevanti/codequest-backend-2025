@@ -40,8 +40,8 @@ export class CreatePostDto {
   @ApiPropertyOptional({
     description: 'Status of the post',
     enum: PostStatus,
-    example: PostStatus.DRAFT,
-    default: PostStatus.DRAFT
+    example: PostStatus.PUBLISHED,
+    default: PostStatus.PUBLISHED
   })
   @IsOptional()
   @IsEnum(PostStatus)
@@ -49,7 +49,7 @@ export class CreatePostDto {
 
   @ApiPropertyOptional({
     description: 'Array of category IDs to associate with the post',
-    example: ['uuid-category-1', 'uuid-category-2']
+    example: ['123e4567-e89b-12d3-a456-426614174000', '123e4567-e89b-12d3-a456-426614174001']
   })
   @IsOptional()
   @IsArray()
@@ -58,7 +58,7 @@ export class CreatePostDto {
 
   @ApiPropertyOptional({
     description: 'Array of tag IDs to associate with the post',
-    example: ['uuid-tag-1', 'uuid-tag-2']
+    example: ['123e4567-e89b-12d3-a456-426614174002', '123e4567-e89b-12d3-a456-426614174003']
   })
   @IsOptional()
   @IsArray()

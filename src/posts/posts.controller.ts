@@ -11,7 +11,7 @@ import {
   HttpCode,
   HttpStatus
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { PostsService } from './posts.service';
 import { CommentsService } from '../comments/comments.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -32,8 +32,6 @@ export class PostsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new post' })
-  @Auth()
-  @ApiBearerAuth('access-token')
   create(
     @Body() createPostDto: CreatePostDto,
     @CurrentUser() user: User
@@ -42,14 +40,12 @@ export class PostsController {
   }
 
   @Post(':id/share')
-  @Auth()
   @ApiOperation({ summary: 'Create a share link for a post (author or admin)' })
   async createShareLink(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.postsService.createShareLink(id, user);
   }
 
   @Delete(':id/share')
-  @Auth()
   @ApiOperation({ summary: 'Revoke share link for a post (author or admin)' })
   async revokeShareLink(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     await this.postsService.revokeShareLink(id, user);
@@ -64,18 +60,6 @@ export class PostsController {
     @CurrentUser() user?: User
   ) {
     return this.postsService.findAll(filterDto, user);
-  }
-
-  @Get('my-posts')
-  @ApiOperation({ summary: 'Get current user posts' })
-  @ApiResponse({ status: 200, description: 'User posts retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  findMyPosts(
-    @Query() filterDto: FilterPostsDto,
-    @CurrentUser() user: User
-  ) {
-    const myPostsFilter = { ...filterDto, authorId: user.id };
-    return this.postsService.findAll(myPostsFilter, user);
   }
 
   @Get(':postId/comments')
@@ -121,8 +105,6 @@ export class PostsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a post' })
-  @Auth()
-  @ApiBearerAuth('access-token')
   @ApiParam({ name: 'id', description: 'Post ID', type: 'string' })
   @ApiResponse({ status: 200, description: 'Post updated successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
@@ -140,8 +122,6 @@ export class PostsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a post' })
-  @Auth()
-  @ApiBearerAuth('access-token')
   @ApiParam({ name: 'id', description: 'Post ID', type: 'string' })
   @ApiResponse({ status: 204, description: 'Post deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -154,24 +134,8 @@ export class PostsController {
     return this.postsService.remove(id, user);
   }
 
-  // Endpoints específicos para administradores
-  @Get('admin/all')
-  @Auth('admin')
-  @ApiOperation({ summary: 'Get all posts including drafts (Admin only)' })
-  @ApiResponse({ status: 200, description: 'All posts retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
-  findAllForAdmin(
-    @Query() filterDto: FilterPostsDto,
-    @CurrentUser() user: User
-  ) {
-    return this.postsService.findAll(filterDto, user);
-  }
-
   @Patch(':id/publish')
   @ApiOperation({ summary: 'Publish a draft post' })
-  @Auth()
-  @ApiBearerAuth('access-token')
   @ApiParam({ name: 'id', description: 'Post ID', type: 'string' })
   @ApiResponse({ status: 200, description: 'Post published successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
@@ -187,8 +151,6 @@ export class PostsController {
 
   @Patch(':id/unpublish')
   @ApiOperation({ summary: 'Unpublish a post (convert to draft)' })
-  @Auth()
-  @ApiBearerAuth('access-token')
   @ApiParam({ name: 'id', description: 'Post ID', type: 'string' })
   @ApiResponse({ status: 200, description: 'Post unpublished successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })

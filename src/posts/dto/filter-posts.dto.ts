@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEnum, IsUUID, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsUUID, IsDateString, ValidateIf } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PostStatus } from './create-post.dto';
@@ -23,26 +23,29 @@ export class FilterPostsDto extends PaginationDto {
 
   @ApiPropertyOptional({
     description: 'Filter by author ID',
-    example: 'uuid-author-id'
+    example: '123e4567-e89b-12d3-a456-426614174000'
   })
   @IsOptional()
-  @IsUUID()
+  @ValidateIf((o) => o.authorId && o.authorId.trim() !== '')
+  @IsUUID(4, { message: 'Author ID must be a valid UUID' })
   authorId?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by category ID',
-    example: 'uuid-category-id'
+    example: '123e4567-e89b-12d3-a456-426614174001'
   })
   @IsOptional()
-  @IsUUID()
+  @ValidateIf((o) => o.categoryId && o.categoryId.trim() !== '')
+  @IsUUID(4, { message: 'Category ID must be a valid UUID' })
   categoryId?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by tag ID',
-    example: 'uuid-tag-id'
+    example: '123e4567-e89b-12d3-a456-426614174002'
   })
   @IsOptional()
-  @IsUUID()
+  @ValidateIf((o) => o.tagId && o.tagId.trim() !== '')
+  @IsUUID(4, { message: 'Tag ID must be a valid UUID' })
   tagId?: string;
 
   @ApiPropertyOptional({

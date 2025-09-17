@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -30,7 +30,7 @@ import { UserRole } from '../roles/entities/user-role.entity';
       }),
     }),
   
-    UsersModule,
+    forwardRef(() => UsersModule), 
   ],
 })
 export class AuthModule {}

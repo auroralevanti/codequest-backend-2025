@@ -327,18 +327,28 @@ export class PostsService {
       queryBuilder.andWhere('post.status = :status', { status });
     }
     
-    if (search) {
+    if (search && search.trim()) {
       queryBuilder.andWhere(
         '(post.title ILIKE :search OR post.content ILIKE :search)',
         { search: `%${search}%` }
       );
     }
 
-    if (authorId) queryBuilder.andWhere('post.authorId = :authorId', { authorId });
-    if (categoryId) queryBuilder.andWhere('categories.id = :categoryId', { categoryId });
-    if (tagId) queryBuilder.andWhere('tags.id = :tagId', { tagId });
-    if (publishedAfter) queryBuilder.andWhere('post.publishedAt >= :publishedAfter', { publishedAfter });
-    if (publishedBefore) queryBuilder.andWhere('post.publishedAt <= :publishedBefore', { publishedBefore });
+    if (authorId && authorId.trim() && this.isValidUUID(authorId)) 
+      queryBuilder.andWhere('post.authorId = :authorId', { authorId });
+    if (categoryId && categoryId.trim() && this.isValidUUID(categoryId)) 
+      queryBuilder.andWhere('categories.id = :categoryId', { categoryId });
+    if (tagId && tagId.trim() && this.isValidUUID(tagId)) 
+      queryBuilder.andWhere('tags.id = :tagId', { tagId });
+    if (publishedAfter && publishedAfter.trim()) 
+      queryBuilder.andWhere('post.publishedAt >= :publishedAfter', { publishedAfter });
+    if (publishedBefore && publishedBefore.trim()) 
+      queryBuilder.andWhere('post.publishedAt <= :publishedBefore', { publishedBefore });
+  }
+
+  private isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
   }
 
   private async addPostCounts(posts: Post[], currentUser?: User): Promise<Post[]> {

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PostsService } from './posts.service';
 import { PostsController } from './posts.controller';
@@ -12,9 +12,9 @@ import { LikesModule } from '../likes/likes.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Post, Category, Tag]),
-    AuthModule,
-  CommentsModule,
-  LikesModule,
+    forwardRef(() => AuthModule), 
+    CommentsModule,
+    LikesModule,
   ],
   controllers: [PostsController],
   providers: [PostsService],
