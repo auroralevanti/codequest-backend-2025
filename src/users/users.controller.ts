@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Param, Delete, Query, ParseUUIDPipe } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 import { User } from './entities/user.entity';
@@ -30,15 +30,6 @@ export class UsersController {
     return user;
   }
 
-  @Get('me/posts')
-  getCurrentUserPosts(
-    @Query() filterDto: FilterPostsDto,
-    @CurrentUser() user: User
-  ) {
-    const myPostsFilter = { ...filterDto, authorId: user.id };
-    return this.postsService.findAll(myPostsFilter, user);
-  }
-
   @Get(':id')
   findOne(@Param('id') id: string): Promise<User> {
     return this.usersService.findOne(id);
@@ -47,11 +38,10 @@ export class UsersController {
   @Get(':id/posts')
   getPostsByUserId(
     @Param('id') id: string,
-    @Query() filterDto: FilterPostsDto,
-    @CurrentUser() user?: User
+    @Query() filterDto: FilterPostsDto
   ) {
     const userPostsFilter = { ...filterDto, authorId: id };
-    return this.postsService.findAll(userPostsFilter, user);
+    return this.postsService.findAll(userPostsFilter);
   }
 
   @Delete(':id')
