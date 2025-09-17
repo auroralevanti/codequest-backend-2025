@@ -116,4 +116,60 @@ export class AuthService {
 
     return user;
   }
+
+  // Find or create a user from Discord profile and return { user, token }
+  async loginOrRegisterDiscord(profile: any) {
+    // Profile shape from passport-discord: { id, username, discriminator, avatar, email }
+    const discordId = profile.id;
+    const email = profile.email;
+    const username = profile.username || `discord_${discordId}`;
+    const avatarUrl = profile.avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${profile.avatar}.png` : undefined;
+
+    // Try to find existing user by discordId first, then by email
+    let user = null;
+    try {
+      if (discordId) {
+        user = await this.usersService.findOneByDiscordId(discordId);
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    if (!user && email) {
+      try {
+        user = await this.usersService.findOneByEmail(email);
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    if (!user) {
+      // Create user with a random password (not used) and discordId linked
+      const randomPass = Math.random().toString(36).slice(-12) + 'A1!';
+      const createDto: any = {
+        username,
+        email: email || `${discordId}@discord.local`,
+        password: randomPass,
+        avatarUrl,
+        roles: 'user',
+        discordId,
+      };
+
+      user = await this.usersService.create(createDto);
+    } else {
+      // Ensure discordId is set if user found by email
+      if (!user.discordId && discordId) {
+        try {
+          await this.usersService.linkDiscordId(user.id, discordId);
+          user = await this.usersService.findOneById(user.id);
+        } catch (err) {
+          // ignore
+        }
+      }
+    }
+
+    const token = this.getJwtToken(user.id);
+    delete (user as any).password;
+    return { user, token };
+  }
 }

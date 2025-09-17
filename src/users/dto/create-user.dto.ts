@@ -28,4 +28,9 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   roles?: string;
+
+  @ApiPropertyOptional({ description: 'Discord ID when user is created via Discord OAuth' })
+  @IsOptional()
+  @IsString()
+  discordId?: string;
 }

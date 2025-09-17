@@ -37,6 +37,7 @@
     "dotenv": "^16.4.5",
     "joi": "^17.13.3",
     "passport": "^0.7.0",
+    "passport-discord": "^0.1.4",
     "passport-jwt": "^4.0.1",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.0",

@@ -71,4 +71,12 @@ export class UsersService {
     }
   }
 
+  async findOneByDiscordId(discordId: string): Promise<User | null> {
+    return await this.usersRepository.findOne({ where: { discordId } });
+  }
+
+  async linkDiscordId(userId: string, discordId: string): Promise<void> {
+    await this.usersRepository.update({ id: userId }, { discordId });
+  }
+
 }

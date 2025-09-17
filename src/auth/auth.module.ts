@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { DiscordStrategy } from './strategies/discord.strategy';
 import { envs } from '../config';
 import { AuthService } from './auth.service';
 import { RolesService } from '../roles/services/roles.service';
@@ -15,13 +16,13 @@ import { UserRole } from '../roles/entities/user-role.entity';
 @Global()
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesService ],
-  exports: [ JwtStrategy, PassportModule, JwtModule, RolesService ],
+  providers: [AuthService, JwtStrategy, DiscordStrategy, RolesService ],
+  exports: [ JwtStrategy, PassportModule, JwtModule, RolesService, DiscordStrategy ],
   imports: [
     
     TypeOrmModule.forFeature([Role, UserRole]),
     
-    PassportModule.register({ defaultStrategy: 'jwt' }),
+  PassportModule.register({ defaultStrategy: 'jwt' }),
 
     JwtModule.registerAsync({
       useFactory: () => ({

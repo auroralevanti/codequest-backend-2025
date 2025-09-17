@@ -17,6 +17,9 @@ export class User {
     @Column({ type: 'varchar', length: 50, unique: true })
     email: string;
 
+    @Column({ type: 'varchar', length: 64, name: 'discord_id', nullable: true, unique: true })
+    discordId?: string | null;
+
     // Keep property name `password` in the entity for compatibility with existing logic,
     // but map to `password_hash` column in the database.
     @Exclude()
