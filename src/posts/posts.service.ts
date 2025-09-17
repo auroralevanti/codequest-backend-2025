@@ -10,6 +10,8 @@ import { User } from '../users/entities/user.entity';
 import { Category } from '../categories/entities/category.entity';
 import { Tag } from '../tags/entities/tag.entity';
 import { RolesService } from '../roles/services/roles.service';
+import { LikesService } from '../likes/likes.service';
+import { CommentsService } from '../comments/comments.service';
 
 @Injectable()
 export class PostsService {
@@ -21,6 +23,8 @@ export class PostsService {
     @InjectRepository(Tag)
     private readonly tagRepository: Repository<Tag>,
     private readonly rolesService: RolesService,
+    private readonly likesService: LikesService,
+    private readonly commentsService: CommentsService,
   ) {}
 
   async create(createPostDto: CreatePostDto, user: User): Promise<Post> {
@@ -94,6 +98,7 @@ export class PostsService {
         : null,
       likesCount: post.likesCount,
       commentsCount: post.commentsCount,
+      isLikedByUser: post.isLikedByUser,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
     }));
@@ -118,16 +123,17 @@ export class PostsService {
     if (post.status === PostStatus.DRAFT && currentUser?.id !== post.authorId && !isAdmin) 
       throw new ForbiddenException('You do not have permission to view this draft post');
 
-  const [postWithCounts] = await this.addPostCounts([post], currentUser);
+    const [postWithCounts] = await this.addPostCounts([post], currentUser);
 
     return {
       id: postWithCounts.id,
       title: postWithCounts.title,
       slug: postWithCounts.slug,
       content: postWithCounts.content,
-  author: author ? { id: author.id, username: author.username, avatarUrl: author.avatarUrl } : null,
+      author: author ? { id: author.id, username: author.username, avatarUrl: author.avatarUrl } : null,
       likesCount: postWithCounts.likesCount,
       commentsCount: postWithCounts.commentsCount,
+      isLikedByUser: postWithCounts.isLikedByUser,
       createdAt: postWithCounts.createdAt,
       updatedAt: postWithCounts.updatedAt,
     };
@@ -336,13 +342,23 @@ export class PostsService {
   }
 
   private async addPostCounts(posts: Post[], currentUser?: User): Promise<Post[]> {
-    // Por ahora, establecer contadores en 0
-    // Se implementarán cuando tengamos los módulos de likes y comments
-    return posts.map(post => ({
-      ...post,
-      likesCount: 0,
-      commentsCount: 0,
-      isLikedByUser: false,
-    }));
+    const postsWithCounts = await Promise.all(
+      posts.map(async (post) => {
+        const likesCount = await this.likesService.getPostLikesCount(post.id);
+        const commentsCount = await this.commentsService.getCommentsCountByPost(post.id);
+        const isLikedByUser = currentUser 
+          ? await this.likesService.isPostLikedByUser(post.id, currentUser.id)
+          : false;
+
+        return {
+          ...post,
+          likesCount,
+          commentsCount,
+          isLikedByUser,
+        };
+      })
+    );
+
+    return postsWithCounts;
   }
 }

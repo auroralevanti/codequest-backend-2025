@@ -18,6 +18,8 @@ export class LikesService {
     private readonly postRepo: Repository<Post>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Comment)
+    private readonly commentRepo: Repository<Comment>,
   ) {}
 
   async likePost(postId: string, userId: string): Promise<PostLike> {
@@ -42,7 +44,7 @@ export class LikesService {
 
   // Comment likes
   async likeComment(commentId: string, userId: string): Promise<CommentLike> {
-    const comment = await this.postRepo.manager.findOne(Comment, { where: { id: commentId } as any }).catch(() => null);
+    const comment = await this.commentRepo.findOne({ where: { id: commentId } });
     if (!comment) throw new NotFoundException('Comment not found');
 
     const existing = await this.commentLikeRepo.findOneBy({ commentId, userId });
@@ -58,5 +60,23 @@ export class LikesService {
 
   async listCommentLikes(commentId: string): Promise<CommentLike[]> {
     return this.commentLikeRepo.find({ where: { commentId } });
+  }
+
+  async getPostLikesCount(postId: string): Promise<number> {
+    return this.likeRepo.count({ where: { postId } });
+  }
+
+  async getCommentLikesCount(commentId: string): Promise<number> {
+    return this.commentLikeRepo.count({ where: { commentId } });
+  }
+
+  async isPostLikedByUser(postId: string, userId: string): Promise<boolean> {
+    const like = await this.likeRepo.findOne({ where: { postId, userId } });
+    return !!like;
+  }
+
+  async isCommentLikedByUser(commentId: string, userId: string): Promise<boolean> {
+    const like = await this.commentLikeRepo.findOne({ where: { commentId, userId } });
+    return !!like;
   }
 }

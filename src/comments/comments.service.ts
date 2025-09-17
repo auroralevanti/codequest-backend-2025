@@ -60,4 +60,8 @@ export class CommentsService {
 
     await this.commentRepository.remove(comment);
   }
+
+  async getCommentsCountByPost(postId: string): Promise<number> {
+    return this.commentRepository.count({ where: { postId } });
+  }
 }

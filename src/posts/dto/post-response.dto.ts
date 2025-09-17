@@ -33,6 +33,9 @@ export class PostResponseDto {
   @ApiProperty({ required: false })
   commentsCount?: number;
 
+  @ApiProperty({ required: false, description: 'Indicates if the current user has liked this post' })
+  isLikedByUser?: boolean;
+
   @ApiProperty({ type: 'string', format: 'date-time' })
   createdAt: Date;
 
