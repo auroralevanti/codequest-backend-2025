@@ -44,8 +44,11 @@ export class CommentsController {
   @ApiOperation({ summary: 'Get a comment by id' })
   @ApiParam({ name: 'id', description: 'Comment id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ type: CommentResponseDto })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.commentsService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User
+  ) {
+    return this.commentsService.findOne(id, user);
   }
 
   @Get(':id/replies')
@@ -57,8 +60,9 @@ export class CommentsController {
   findReplies(
     @Param('id', ParseUUIDPipe) parentCommentId: string, 
     @Query() pagination: PaginationDto,
+    @CurrentUser() user: User
   ) {
-    return this.commentsService.findReplies(parentCommentId, pagination);
+    return this.commentsService.findReplies(parentCommentId, pagination, user);
   }
 
   @Patch(':id')

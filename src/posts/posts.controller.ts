@@ -17,7 +17,6 @@ import { CommentsService } from '../comments/comments.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { FilterPostsDto } from './dto/filter-posts.dto';
-import { Auth } from '../auth/decorators/auth.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -67,8 +66,9 @@ export class PostsController {
   findComments(
     @Param('postId', ParseUUIDPipe) postId: string,
     @Query() pagination: PaginationDto,
+    @CurrentUser() user: User
   ) {
-    return this.commentsService.findAllByPost(postId, pagination);
+    return this.commentsService.findAllByPost(postId, pagination, user);
   }
 
   @Get(':id')

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Comment } from './entities/comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -34,7 +34,7 @@ export class CommentsService {
   async findAllByPost(postId: string, pagination?: PaginationDto, currentUser?: User): Promise<{ data: CommentResponseDto[]; total: number }> {
     const { limit = 10, offset = 0 } = pagination || {};
     const [comments, total] = await this.commentRepository.findAndCount({ 
-      where: { postId, parentCommentId: null },
+      where: { postId, parentCommentId: IsNull() },
       relations: ['author'], 
       skip: offset, 
       take: limit, 
