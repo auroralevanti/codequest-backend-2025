@@ -65,6 +65,9 @@ export class Post {
   commentsCount?: number;
   isLikedByUser?: boolean;
 
+  @Column({ type: 'json', name: 'images', nullable: true })
+  images?: string[];
+
   // Share link support
   @Column({ type: 'varchar', length: 128, name: 'share_token', nullable: true, unique: true })
   shareToken?: string;

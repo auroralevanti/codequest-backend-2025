@@ -64,4 +64,14 @@ export class CreatePostDto {
   @IsArray()
   @IsUUID(4, { each: true })
   tagIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Array of image URLs uploaded to Cloudinary',
+    example: ['https://res.cloudinary.com/demo/image/upload/v123456/img1.jpg']
+  })
+  @IsOptional()
+  @IsArray()
+  // Ensure each item is a string URL
+  @IsString({ each: true })
+  images?: string[];
 }

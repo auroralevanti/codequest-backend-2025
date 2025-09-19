@@ -28,7 +28,7 @@ export class PostsService {
   ) {}
 
   async create(createPostDto: CreatePostDto, user: User): Promise<Post> {
-    const { categoryIds, tagIds, ...postData } = createPostDto;
+    const { categoryIds, tagIds, images, ...postData } = createPostDto;
 
     if (!postData.slug) postData.slug = this.generateSlug(postData.title);
     await this.validateUniqueSlug(postData.slug);
@@ -38,6 +38,7 @@ export class PostsService {
       authorId: user.id,
       status: postData.status || PostStatus.DRAFT,
       publishedAt: postData.status === PostStatus.PUBLISHED ? new Date() : null,
+      images: images || null,
     });
 
     if (categoryIds && categoryIds.length > 0) {
@@ -101,6 +102,7 @@ export class PostsService {
       isLikedByUser: post.isLikedByUser,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
+      images: post.images || [],
     }));
 
     return {
@@ -136,6 +138,7 @@ export class PostsService {
       isLikedByUser: postWithCounts.isLikedByUser,
       createdAt: postWithCounts.createdAt,
       updatedAt: postWithCounts.updatedAt,
+      images: postWithCounts.images || [],
     };
   }
 
@@ -163,6 +166,7 @@ export class PostsService {
       commentsCount: postWithCounts.commentsCount,
       createdAt: postWithCounts.createdAt,
       updatedAt: postWithCounts.updatedAt,
+      images: postWithCounts.images || [],
     };
   }
 
@@ -273,6 +277,7 @@ export class PostsService {
       commentsCount: postWithCounts.commentsCount,
       createdAt: postWithCounts.createdAt,
       updatedAt: postWithCounts.updatedAt,
+      images: postWithCounts.images || [],
     };
   }
 

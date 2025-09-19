@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PostAuthorDto {
   @ApiProperty({ format: 'uuid' })
@@ -41,4 +41,10 @@ export class PostResponseDto {
 
   @ApiProperty({ type: 'string', format: 'date-time' })
   updatedAt: Date;
+
+  @ApiPropertyOptional({
+    description: 'Array of image URLs attached to the post',
+    example: ['https://res.cloudinary.com/demo/image/upload/v123456/img1.jpg']
+  })
+  images?: string[];
 }
