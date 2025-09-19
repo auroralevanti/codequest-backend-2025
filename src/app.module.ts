@@ -9,6 +9,7 @@ import { TagsModule } from './tags/tags.module';
 import { CommentsModule } from './comments/comments.module';
 import { LikesModule } from './likes/likes.module';
 import { SavedModule } from './saved/saved.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SavedModule } from './saved/saved.module';
     CommentsModule,
     LikesModule,
     SavedModule,
+    CloudinaryModule,
   ],
   controllers: [],
   providers: [],
