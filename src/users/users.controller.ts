@@ -38,10 +38,11 @@ export class UsersController {
   @Get(':id/posts')
   getPostsByUserId(
     @Param('id') id: string,
-    @Query() filterDto: FilterPostsDto
+    @Query() filterDto: FilterPostsDto,
+    @CurrentUser() user: User,
   ) {
     const userPostsFilter = { ...filterDto, authorId: id };
-    return this.postsService.findAll(userPostsFilter);
+    return this.postsService.findAll(userPostsFilter, user);
   }
 
   @Delete(':id')
