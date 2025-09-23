@@ -3,6 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { envs } from './config';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { PostsModule } from './posts/posts.module';
+import { CategoriesModule } from './categories/categories.module';
+import { TagsModule } from './tags/tags.module';
+import { CommentsModule } from './comments/comments.module';
+import { LikesModule } from './likes/likes.module';
+import { SavedModule } from './saved/saved.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -10,10 +17,17 @@ import { AuthModule } from './auth/auth.module';
       type: 'postgres',
       url: envs.dbUrl,
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: false,
     }),
     UsersModule,
     AuthModule,
+    PostsModule,
+    CategoriesModule,
+    TagsModule,
+    CommentsModule,
+    LikesModule,
+    SavedModule,
+    CloudinaryModule,
   ],
   controllers: [],
   providers: [],

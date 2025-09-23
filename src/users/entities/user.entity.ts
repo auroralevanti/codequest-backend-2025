@@ -1,5 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import { ValidRoles } from "../../auth/enums/valid-roles.enum";
+import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany } from "typeorm";
+import { Exclude } from 'class-transformer';
+import { UserRole } from "../../roles/entities/user-role.entity";
 
 @Entity({ name: 'users' })
 export class User {
@@ -11,24 +12,36 @@ export class User {
     username: string;
 
     @Column({ type: 'varchar', length: 100, name: 'avatar_url', nullable: true })
-    avatarUrl: string;
+    avatarUrl?: string;
 
     @Column({ type: 'varchar', length: 50, unique: true })
     email: string;
 
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 64, name: 'discord_id', nullable: true, unique: true })
+    discordId?: string | null;
+
+    // Keep property name `password` in the entity for compatibility with existing logic,
+    // but map to `password_hash` column in the database.
+    @Exclude()
+    @Column({ type: 'varchar', name: 'password_hash' })
     password: string;
 
-    @Column({ type: 'enum', enum: ValidRoles ,default: ValidRoles.user })
-    roles: ValidRoles;
+    @Column({ type: 'varchar', length: 50, default: 'user' })
+    roles: string;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'created_at' })
+    @OneToMany(() => UserRole, userRole => userRole.user)
+    userRoles: UserRole[];
+
+    @Column({ type: 'boolean', name: 'is_active', default: true })
+    isActive: boolean;
+
+    @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
     createdAt: Date;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_at' })
+    @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
     updatedAt: Date;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'deleted_at' })
-    deletedAt: Date | null;
+    @DeleteDateColumn({ type: 'timestamptz', name: 'deleted_at' })
+    deletedAt?: Date | null;
 
 }

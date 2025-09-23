@@ -1,0 +1,379 @@
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, SelectQueryBuilder, In } from 'typeorm';
+import { Post } from './entities/post.entity';
+import { PostResponseDto } from './dto/post-response.dto';
+import { CreatePostDto, PostStatus } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
+import { FilterPostsDto } from './dto/filter-posts.dto';
+import { User } from '../users/entities/user.entity';
+import { Category } from '../categories/entities/category.entity';
+import { Tag } from '../tags/entities/tag.entity';
+import { RolesService } from '../roles/services/roles.service';
+import { LikesService } from '../likes/likes.service';
+import { CommentsService } from '../comments/comments.service';
+
+@Injectable()
+export class PostsService {
+  constructor(
+    @InjectRepository(Post)
+    private readonly postRepository: Repository<Post>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Tag)
+    private readonly tagRepository: Repository<Tag>,
+    private readonly rolesService: RolesService,
+    private readonly likesService: LikesService,
+    private readonly commentsService: CommentsService,
+  ) {}
+
+  async create(createPostDto: CreatePostDto, user: User): Promise<Post> {
+    const { categoryIds, tagIds, images, ...postData } = createPostDto;
+
+    if (!postData.slug) postData.slug = this.generateSlug(postData.title);
+    await this.validateUniqueSlug(postData.slug);
+
+    const post = this.postRepository.create({
+      ...postData,
+      authorId: user.id,
+      status: postData.status || PostStatus.DRAFT,
+      publishedAt: postData.status === PostStatus.PUBLISHED ? new Date() : null,
+      images: images || null,
+    });
+
+    if (categoryIds && categoryIds.length > 0) {
+      const categories = await this.categoryRepository.findBy({ id: In(categoryIds) });
+      if (categories.length !== categoryIds.length) {
+        throw new BadRequestException('One or more categories not found');
+      }
+      post.categories = categories;
+    }
+
+    if (tagIds && tagIds.length > 0) {
+      const tags = await this.tagRepository.findBy({ id: In(tagIds) });
+      if (tags.length !== tagIds.length) {
+        throw new BadRequestException('One or more tags not found');
+      }
+      post.tags = tags;
+    }
+
+    return await this.postRepository.save(post);
+  }
+
+  async findAll(filterDto: FilterPostsDto, currentUser?: User): Promise<{ posts: PostResponseDto[]; total: number }> {
+    const { limit = 10, offset = 0, search, status, authorId, categoryId, tagId, publishedAfter, publishedBefore } = filterDto;
+
+    const queryBuilder = this.postRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.categories', 'categories')
+      .leftJoinAndSelect('post.tags', 'tags')
+      // Select only safe author fields to avoid leaking password or other sensitive columns
+      .leftJoin('post.author', 'author')
+      .addSelect(['author.id', 'author.username', 'author.avatarUrl']);
+
+    await this.applyFilters(queryBuilder, {
+      search,
+      status,
+      authorId,
+      categoryId,
+      tagId,
+      publishedAfter,
+      publishedBefore,
+      currentUser
+    });
+
+    queryBuilder.orderBy('post.publishedAt', 'DESC').addOrderBy('post.createdAt', 'DESC');
+    queryBuilder.skip(offset).take(limit);
+
+    const [posts, total] = await queryBuilder.getManyAndCount();
+    const postsWithCounts = await this.addPostCounts(posts, currentUser);
+
+    // Map to response DTO shape to control exposed fields
+    const mapped = postsWithCounts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      content: post.content,
+      author: post.author
+        ? { id: post.author.id, username: post.author.username, avatarUrl: post.author.avatarUrl }
+        : null,
+      likesCount: post.likesCount,
+      commentsCount: post.commentsCount,
+      isLikedByUser: post.isLikedByUser,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      images: post.images || [],
+    }));
+
+    return {
+      posts: mapped,
+      total,
+    };
+  }
+
+  async findOne(id: string, currentUser?: User): Promise<PostResponseDto> {
+    const post = await this.postRepository.findOne({ where: { id }, relations: ['categories', 'tags'] });
+
+    // load safe author fields explicitly using repository select
+    const author = post?.authorId
+      ? await this.postRepository.manager.getRepository(User).findOne({ where: { id: post.authorId }, select: ['id', 'username', 'avatarUrl'] })
+      : null;
+
+    if (!post) throw new NotFoundException(`Post with ID ${id} not found`);
+
+    const isAdmin = currentUser ? await this.rolesService.userHasRole(currentUser.id, 'admin') : false;
+    if (post.status === PostStatus.DRAFT && currentUser?.id !== post.authorId && !isAdmin) 
+      throw new ForbiddenException('You do not have permission to view this draft post');
+
+    const [postWithCounts] = await this.addPostCounts([post], currentUser);
+
+    return {
+      id: postWithCounts.id,
+      title: postWithCounts.title,
+      slug: postWithCounts.slug,
+      content: postWithCounts.content,
+      author: author ? { id: author.id, username: author.username, avatarUrl: author.avatarUrl } : null,
+      likesCount: postWithCounts.likesCount,
+      commentsCount: postWithCounts.commentsCount,
+      isLikedByUser: postWithCounts.isLikedByUser,
+      createdAt: postWithCounts.createdAt,
+      updatedAt: postWithCounts.updatedAt,
+      images: postWithCounts.images || [],
+    };
+  }
+
+  async findBySlug(slug: string, currentUser?: User): Promise<PostResponseDto> {
+    const post = await this.postRepository.findOne({ where: { slug }, relations: ['categories', 'tags'] });
+    const authorBySlug = post?.authorId
+      ? await this.postRepository.manager.getRepository(User).findOne({ where: { id: post.authorId }, select: ['id', 'username', 'avatarUrl'] })
+      : null;
+
+    if (!post) throw new NotFoundException(`Post with slug '${slug}' not found`);
+
+    const isAdmin = currentUser ? await this.rolesService.userHasRole(currentUser.id, 'admin') : false;
+    if (post.status === PostStatus.DRAFT && currentUser?.id !== post.authorId && !isAdmin) 
+      throw new ForbiddenException('You do not have permission to view this draft post');
+
+    const [postWithCounts] = await this.addPostCounts([post], currentUser);
+
+    return {
+      id: postWithCounts.id,
+      title: postWithCounts.title,
+      slug: postWithCounts.slug,
+      content: postWithCounts.content,
+      author: authorBySlug ? { id: authorBySlug.id, username: authorBySlug.username, avatarUrl: authorBySlug.avatarUrl } : null,
+      likesCount: postWithCounts.likesCount,
+      commentsCount: postWithCounts.commentsCount,
+      createdAt: postWithCounts.createdAt,
+      updatedAt: postWithCounts.updatedAt,
+      images: postWithCounts.images || [],
+    };
+  }
+
+  async update(id: string, updatePostDto: UpdatePostDto, user: User): Promise<Post> {
+    const post = await this.getPostEntity(id);
+
+    const isAdmin = await this.rolesService.userHasRole(user.id, 'admin');
+    if (post.authorId !== user.id && !isAdmin) 
+      throw new ForbiddenException('You do not have permission to update this post');
+
+    const { categoryIds, tagIds, ...postData } = updatePostDto;
+    if (postData.slug && postData.slug !== post.slug) 
+      await this.validateUniqueSlug(postData.slug, id);
+
+    if (postData.status === PostStatus.PUBLISHED && post.status !== PostStatus.PUBLISHED) 
+      (postData as any).publishedAt = new Date();
+
+    Object.assign(post, postData);
+
+    if (categoryIds !== undefined) {
+      if (categoryIds.length > 0) {
+        const categories = await this.categoryRepository.findBy({ id: In(categoryIds) });
+        if (categories.length !== categoryIds.length) {
+          throw new BadRequestException('One or more categories not found');
+        }
+        post.categories = categories;
+      } else {
+        post.categories = [];
+      }
+    }
+
+    if (tagIds !== undefined) {
+      if (tagIds.length > 0) {
+        const tags = await this.tagRepository.findBy({ id: In(tagIds) });
+        if (tags.length !== tagIds.length) {
+          throw new BadRequestException('One or more tags not found');
+        }
+        post.tags = tags;
+      } else {
+        post.tags = [];
+      }
+    }
+
+    return await this.postRepository.save(post);
+  }
+
+  async remove(id: string, user: User): Promise<void> {
+    const post = await this.getPostEntity(id);
+    const isAdmin = await this.rolesService.userHasRole(user.id, 'admin');
+    if (post.authorId !== user.id && !isAdmin) 
+      throw new ForbiddenException('You do not have permission to delete this post');
+
+    await this.postRepository.remove(post);
+  }
+
+  // --- Share link methods ---
+  async createShareLink(id: string, user: User, expiresInHours = 24): Promise<{ token: string; expiresAt: Date }> {
+    const post = await this.getPostEntity(id);
+    const isAdmin = await this.rolesService.userHasRole(user.id, 'admin');
+    if (post.authorId !== user.id && !isAdmin) throw new ForbiddenException('You do not have permission to share this post');
+
+    // generate token
+    const token = this.generateShareToken();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHours);
+
+    post.shareToken = token;
+    post.shareExpiresAt = expiresAt;
+    post.shareIsActive = true;
+
+    await this.postRepository.save(post);
+
+    return { token, expiresAt };
+  }
+
+  async revokeShareLink(id: string, user: User): Promise<void> {
+    const post = await this.getPostEntity(id);
+    const isAdmin = await this.rolesService.userHasRole(user.id, 'admin');
+    if (post.authorId !== user.id && !isAdmin) throw new ForbiddenException('You do not have permission to revoke this share link');
+
+    post.shareIsActive = false;
+    post.shareToken = null;
+    post.shareExpiresAt = null;
+
+    await this.postRepository.save(post);
+  }
+
+  async getByShareToken(token: string): Promise<PostResponseDto> {
+    const post = await this.postRepository.findOne({ where: { shareToken: token }, relations: ['categories', 'tags'] });
+    if (!post) throw new NotFoundException('Shared post not found');
+    if (!post.shareIsActive) throw new ForbiddenException('Share link is disabled');
+    if (post.shareExpiresAt && post.shareExpiresAt < new Date()) throw new ForbiddenException('Share link has expired');
+
+    const [postWithCounts] = await this.addPostCounts([post]);
+
+    // load safe author fields
+    const author = post?.authorId
+      ? await this.postRepository.manager.getRepository(User).findOne({ where: { id: post.authorId }, select: ['id', 'username', 'avatarUrl'] })
+      : null;
+
+    return {
+      id: postWithCounts.id,
+      title: postWithCounts.title,
+      slug: postWithCounts.slug,
+      content: postWithCounts.content,
+      author: author ? { id: author.id, username: author.username, avatarUrl: author.avatarUrl } : null,
+      likesCount: postWithCounts.likesCount,
+      commentsCount: postWithCounts.commentsCount,
+      createdAt: postWithCounts.createdAt,
+      updatedAt: postWithCounts.updatedAt,
+      images: postWithCounts.images || [],
+    };
+  }
+
+  private generateShareToken(): string {
+    // simple token:  URL-safe base64 of random bytes
+    return require('crypto').randomBytes(24).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  private async getPostEntity(id: string): Promise<Post> {
+    const post = await this.postRepository.findOne({ where: { id }, relations: ['categories', 'tags'] });
+    if (!post) throw new NotFoundException(`Post with ID ${id} not found`);
+    return post;
+  }
+
+  private generateSlug(title: string): string {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') 
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-') 
+      .trim();
+  }
+
+  private async validateUniqueSlug(slug: string, excludeId?: string): Promise<void> {
+    const queryBuilder = this.postRepository.createQueryBuilder('post').where('post.slug = :slug', { slug });
+
+    if (excludeId) queryBuilder.andWhere('post.id != :excludeId', { excludeId });
+
+    const existingPost = await queryBuilder.getOne();
+    if (existingPost) throw new BadRequestException(`Post with slug '${slug}' already exists`);
+  }
+
+  private async applyFilters(
+    queryBuilder: SelectQueryBuilder<Post>,
+    filters: {
+      search?: string;
+      status?: PostStatus;
+      authorId?: string;
+      categoryId?: string;
+      tagId?: string;
+      publishedAfter?: string;
+      publishedBefore?: string;
+      currentUser?: User;
+    }
+  ): Promise<void> {
+    const { search, status, authorId, categoryId, tagId, publishedAfter, publishedBefore, currentUser } = filters;
+
+    const isAdmin = currentUser ? await this.rolesService.userHasRole(currentUser.id, 'admin') : false;
+    if (!status && !isAdmin) {
+      queryBuilder.andWhere('post.status = :defaultStatus', { defaultStatus: PostStatus.PUBLISHED });
+    } else if (status) {
+      queryBuilder.andWhere('post.status = :status', { status });
+    }
+    
+    if (search && search.trim()) {
+      queryBuilder.andWhere(
+        '(post.title ILIKE :search OR post.content ILIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    if (authorId && authorId.trim() && this.isValidUUID(authorId)) 
+      queryBuilder.andWhere('post.authorId = :authorId', { authorId });
+    if (categoryId && categoryId.trim() && this.isValidUUID(categoryId)) 
+      queryBuilder.andWhere('categories.id = :categoryId', { categoryId });
+    if (tagId && tagId.trim() && this.isValidUUID(tagId)) 
+      queryBuilder.andWhere('tags.id = :tagId', { tagId });
+    if (publishedAfter && publishedAfter.trim()) 
+      queryBuilder.andWhere('post.publishedAt >= :publishedAfter', { publishedAfter });
+    if (publishedBefore && publishedBefore.trim()) 
+      queryBuilder.andWhere('post.publishedAt <= :publishedBefore', { publishedBefore });
+  }
+
+  private isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  }
+
+  private async addPostCounts(posts: Post[], currentUser?: User): Promise<Post[]> {
+    const postsWithCounts = await Promise.all(
+      posts.map(async (post) => {
+        const likesCount = await this.likesService.getPostLikesCount(post.id);
+        const commentsCount = await this.commentsService.getCommentsCountByPost(post.id);
+        const isLikedByUser = currentUser 
+          ? await this.likesService.isPostLikedByUser(post.id, currentUser.id)
+          : false;
+
+        return {
+          ...post,
+          likesCount,
+          commentsCount,
+          isLikedByUser,
+        };
+      })
+    );
+
+    return postsWithCounts;
+  }
+}
